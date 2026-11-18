@@ -323,7 +323,15 @@ p{margin:0}
 .par{width:100%;border-collapse:collapse;font-size:16px}
 .par th,.par td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .par th{width:40%;font-weight:600;color:var(--mut);background:var(--g)}
-.inf .zak{margin-top:28px}
+.opw{padding:0 0 clamp(40px,4vw,80px)}
+.opw .zak{margin-top:0}
+.opw .zak .tx{max-width:none}
+@media (min-width:1200px){.opw .zak details:first-child .tx{column-count:2;column-gap:56px}.opw .zak .tx p{break-inside:avoid}.opw .par{max-width:1100px}}
+.rch{display:flex;flex-wrap:wrap;gap:4px;position:relative;z-index:2}
+.rch a{font-size:12.5px;font-weight:700;padding:2px 6px;border:1px solid var(--line);text-decoration:none;line-height:1.5;color:var(--mut)}
+.rch a:hover{border-color:var(--k);color:var(--k)}
+.rch a.on{border-color:var(--k);color:var(--k)}
+.inf .ref{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.adr-u{color:var(--b2)}
 
 /* lightbox */
 .lb{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column}

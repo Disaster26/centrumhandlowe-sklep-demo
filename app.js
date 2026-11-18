@@ -36,6 +36,14 @@ function wariantTxt(f,w,c){
   if(f.typ==='kolor')return 'Kolor: '+w.a+(c!=null&&w.combos?', rozmiar '+w.combos[c].a:'');
   return 'Wzór: '+w.a;
 }
+function nazwaW(f,w,c){
+  if(f.typ==='rozmiar')return f.nazwa.indexOf(w.a.replace(/ \(.*/,''))>-1?f.nazwa:f.nazwa+' '+w.a;
+  if(f.typ==='komplet')return f.nazwa.split(':')[0]+': kołdra '+w.a+' + '+w.b.replace('x ','x poduszka ');
+  if(f.typ==='kolor')return f.nazwa+' '+w.a+(c!=null&&w.combos?' '+w.combos[c].a:'');
+  return f.nazwa+' - '+w.a;
+}
+function slug(s){return norm(s).replace(/\+/g,' ').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+function purl(pid,c){var x=PID[pid];return '#/p/'+pid+'-'+slug(nazwaW(x.f,x.w,c))}
 function cenaW(w,c){return w.cena+(c!=null&&w.combos?w.combos[c].dp:0)}
 
 /* ---------- koszyk ---------- */
@@ -61,7 +69,7 @@ function progHtml(s){
 }
 function linia(l,edyt){
   var p=PID[l.pid],f=p.f,w=p.w,c=cenaW(w,l.c);
-  return '<div class="lin" data-k="'+esc(l.k)+'"><a class="fo" href="#/p/'+w.pid+(l.c!=null?'?r='+l.c:'')+'"><img src="'+im(w.img)+'" width="400" height="400" alt="'+esc(f.nazwa)+'" loading="lazy"></a><div><a class="nz" href="#/p/'+w.pid+(l.c!=null?'?r='+l.c:'')+'">'+esc(f.nazwa)+'</a><div class="wa">'+esc(wariantTxt(f,w,l.c))+'</div>'+
+  return '<div class="lin" data-k="'+esc(l.k)+'"><a class="fo" href="'+purl(w.pid,l.c)+'"><img src="'+im(w.img)+'" width="400" height="400" alt="'+esc(f.nazwa)+'" loading="lazy"></a><div><a class="nz" href="'+purl(w.pid,l.c)+'">'+esc(nazwaW(f,w,l.c))+'</a><div class="wa">'+esc(wariantTxt(f,w,l.c))+'</div>'+
    '<div class="dol">'+(edyt?'<div class="il"><button type="button" data-m="-1" aria-label="Mniej">−</button><input type="number" min="1" max="99" value="'+l.q+'" aria-label="Ilość" inputmode="numeric"><button type="button" data-m="1" aria-label="Więcej">+</button></div><button class="us" type="button">Usuń</button>':'<span class="wa">'+l.q+' szt. × '+zl(c)+'</span>')+
    '<span class="cl">'+zl(c*l.q)+(edyt&&l.q>1?'<small>'+zl(c)+' / szt.</small>':'')+'</span></div></div></div>';
 }
@@ -108,13 +116,13 @@ function elementy(fams,fl){
   return out;
 }
 function karta(e){
-  var href='#/p/'+e.w.pid+(e.c!=null?'?r='+e.c:'');
+  var href=purl(e.w.pid,e.c);
   var imgs=e.g.map(function(id,i){return '<a href="'+href+'" tabindex="-1" draggable="false"><img src="'+im(id)+'" srcset="'+im(id)+' 400w, '+im(id,800)+' 800w" sizes="(min-width:1300px) 18vw, (min-width:700px) 30vw, 47vw" width="400" height="400" alt="'+(i?'':esc(e.t))+'" loading="lazy" draggable="false"></a>'}).join('');
   var dots=e.g.length>1?'<span class="kr" aria-hidden="true">'+e.g.map(function(_,i){return '<i'+(i?'':' class="on"')+'></i>'}).join('')+'</span><button class="st l" type="button" tabindex="-1" aria-label="Poprzednie zdjęcie">'+ico('l')+'</button><button class="st p" type="button" tabindex="-1" aria-label="Następne zdjęcie">'+ico('p')+'</button>':'';
   var pro=e.stara&&e.stara>e.cena;
   var multi=(e.f.typ==='rozmiar'||e.f.typ==='komplet')&&e.f.war.length>1||e.f.typ==='kolor'&&e.w.combos&&e.c==null;
   return '<article class="pk"><div class="fo">'+(e.w24?'<span class="w24"><i class="ar" aria-hidden="true"></i>wysyłka 24h</span>':'')+'<div class="sw" data-sw>'+imgs+'</div>'+dots+'</div>'+
-   '<div class="tr">'+(e.f.prod?'<span class="pd">'+esc(e.f.prod)+'</span>':'')+'<h3><a href="'+href+'">'+esc(e.t)+'</a></h3>'+(e.wr?'<span class="wr">'+esc(e.wr)+'</span>':'')+
+   '<div class="tr">'+(e.f.prod?'<span class="pd">'+esc(e.f.prod)+'</span>':'')+'<h3><a href="'+href+'">'+esc(e.t)+'</a></h3>'+(e.f.typ==='rozmiar'&&e.f.war.length>1?'<span class="rch">'+e.f.war.map(function(v){return '<a href="'+purl(v.pid)+'"'+(v===e.w?' class="on"':'')+'>'+esc(v.a.replace(/ \(.*/,''))+'</a>'}).join('')+'</span>':(e.wr?'<span class="wr">'+esc(e.wr)+'</span>':''))+
    '<p class="cn'+(pro?' pro':'')+'">'+(e.od?'<small>od</small>':'')+'<b>'+zl(e.cena)+'</b>'+(pro?'<s>'+zl(e.stara)+'</s>':'')+'</p>'+
    (multi?'<a class="btn dk" href="'+href+'">Wybierz rozmiar</a>':'<button class="btn dk" type="button" data-dodaj="'+e.w.pid+'"'+(e.c!=null?' data-c="'+e.c+'"':'')+'>Do koszyka</button>')+'</div></article>';
 }
@@ -175,7 +183,7 @@ qa('[data-szuk]').forEach(function(f){
   inp.addEventListener('input',function(){
     var v=inp.value.trim();if(v.length<2){zamk();return}
     var r=szukaj(v);if(!pod){pod=document.createElement('div');pod.className='pod';pod.setAttribute('role','listbox');f.appendChild(pod)}
-    sel=-1;pod.innerHTML=r.length?r.slice(0,6).map(function(e){return '<a role="option" href="#/p/'+e.w.pid+(e.c!=null?'?r='+e.c:'')+'"><img src="'+im(e.g[0])+'" alt="" width="56" height="56"><span>'+esc(e.t)+'</span><b>'+(e.od?'od ':'')+zl(e.cena)+'</b></a>'}).join('')+'<a class="wsz" href="#/szukaj?q='+encodeURIComponent(v)+'">Pokaż wszystkie wyniki ('+r.length+')</a>':'<div class="nic">Brak produktów dla „'+esc(v)+'”. Spróbuj: kołdra, poduszka, koc, 160x200.</div>';
+    sel=-1;pod.innerHTML=r.length?r.slice(0,6).map(function(e){return '<a role="option" href="'+purl(e.w.pid,e.c)+'"><img src="'+im(e.g[0])+'" alt="" width="56" height="56"><span>'+esc(e.t)+'</span><b>'+(e.od?'od ':'')+zl(e.cena)+'</b></a>'}).join('')+'<a class="wsz" href="#/szukaj?q='+encodeURIComponent(v)+'">Pokaż wszystkie wyniki ('+r.length+')</a>':'<div class="nic">Brak produktów dla „'+esc(v)+'”. Spróbuj: kołdra, poduszka, koc, 160x200.</div>';
   });
   inp.addEventListener('keydown',function(e){if(!pod)return;var as=qa('a',pod);if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:-1)+as.length)%as.length;as.forEach(function(a,i){a.classList.toggle('on',i===sel)})}else if(e.key==='Enter'&&sel>-1){e.preventDefault();location.hash=as[sel].getAttribute('href');zamk();inp.blur()}else if(e.key==='Escape')zamk()});
   f.addEventListener('submit',function(e){e.preventDefault();var v=inp.value.trim();zamk();if(v){location.hash='#/szukaj?q='+encodeURIComponent(v);inp.blur()}});
@@ -293,14 +301,18 @@ function vSzukaj(p){
 }
 
 function vProdukt(pid,p){
+  var sl=pid;pid=(String(pid).match(/^\d+/)||[''])[0];
   var x=PID[pid];if(!x){vBrak();return}
   var f=x.f,w=x.w,k=KN[f.kat];
-  var r=p.get('r');var c=w.combos?(r!=null&&w.combos[+r]?+r:0):null;
-  document.title=f.nazwa+(f.typ!=='rozmiar'&&f.typ!=='komplet'?' - '+w.a:' '+w.a)+' | CENTRUMHANDLOWE.NET (demo)';
+  var r=p.get('r');var c=null;if(w.combos){c=0;if(r!=null&&w.combos[+r])c=+r;else w.combos.forEach(function(o,i){if(new RegExp('-'+o.a+'$').test(sl||''))c=i})}
+  document.title=nazwaW(f,w,c)+' | CENTRUMHANDLOWE.NET (demo)';
   var gal=(f.typ==='kolor'||f.typ==='wzor')?((w.g&&w.g.length?w.g:[w.img])):(f.gal&&f.gal.length?f.gal:[w.img]);
   if(f.typ==='rozmiar'||f.typ==='komplet'){if(gal.indexOf(w.img)<0)gal=[w.img].concat(gal)}
   gal=gal.slice(0,8);
-  var tytul=f.nazwa+(f.typ==='kolor'||f.typ==='wzor'?' - '+w.a:'');
+  var tytul=nazwaW(f,w,c);
+  var kan=location.href.split('#')[0]+purl(w.pid,c);
+  if(location.hash!==purl(w.pid,c))history.replaceState(null,'',purl(w.pid,c));
+  canon('https://centrumhandlowe.net'+w.u,tytul);
   var cena=cenaW(w,c),pro=w.stara&&w.stara>cena;
   var warianty='';
   if(f.typ==='rozmiar'&&f.war.length>1){
@@ -322,14 +334,16 @@ function vProdukt(pid,p){
   if(podobne.length<4)podobne=podobne.concat(elementy(KAT.filter(function(z){return z.kat!==f.kat&&(z.kat==='koldry'||z.kat==='poduszki')})).slice(0,8));
   V.innerHTML='<div class="w">'+okr([[k.n,'#/k/'+k.id],[tytul]])+'<div class="kp"><div class="gal" id="gal"><div class="gt" id="gt">'+gal.map(function(id,i){return '<button type="button" data-i="'+i+'" aria-label="Powiększ zdjęcie '+(i+1)+'"><img src="'+im(id,800)+'" srcset="'+im(id)+' 400w, '+im(id,800)+' 800w" sizes="(min-width:1000px) 52vw, 100vw" width="800" height="800" alt="'+esc(tytul)+(i?' - zdjęcie '+(i+1):'')+'"'+(i?' loading="lazy"':' fetchpriority="high"')+' draggable="false"></button>'}).join('')+'</div>'+
    (gal.length>1?'<span class="lic" id="lic">1 / '+gal.length+'</span><button class="st l" type="button" aria-label="Poprzednie zdjęcie">'+ico('l')+'</button><button class="st p" type="button" aria-label="Następne zdjęcie">'+ico('p')+'</button><div class="min" id="min">'+gal.map(function(id,i){return '<button type="button" data-i="'+i+'"'+(i?'':' class="on"')+' aria-label="Zdjęcie '+(i+1)+'"><img src="'+im(id)+'" alt="" width="84" height="84" loading="lazy"></button>'}).join('')+'</div>':'')+'</div>'+
-   '<div class="inf">'+(f.prod?'<a class="pd" href="#/k/'+f.kat+'?prod='+encodeURIComponent(f.prod)+'">'+esc(f.prod)+'</a>':'')+'<h1>'+esc(tytul)+'</h1><p class="ref">Nr produktu w sklepie: '+esc(w.pid)+'</p>'+
+   '<div class="inf">'+(f.prod?'<a class="pd" href="#/k/'+f.kat+'?prod='+encodeURIComponent(f.prod)+'">'+esc(f.prod)+'</a>':'')+'<h1>'+esc(tytul)+'</h1><p class="ref" title="centrumhandlowe.net'+esc(w.u)+'">Adres produktu: <span class="adr-u">centrumhandlowe.net'+esc(w.u)+'</span></p>'+
    '<div class="cena'+(pro?' pro':'')+'" aria-live="polite"><b>'+zl(cena)+'</b>'+(pro?'<s>'+zl(w.stara)+'</s>':'')+'<small>Cena brutto (z VAT)</small></div>'+
    warianty+
    '<div class="kup"><div class="il"><button type="button" data-m="-1" aria-label="Mniej">−</button><input id="ilosc" type="number" min="1" max="99" value="1" aria-label="Ilość" inputmode="numeric"><button type="button" data-m="1" aria-label="Więcej">+</button></div><button class="btn nb" type="button" id="dodaj">Dodaj do koszyka <i class="ar" aria-hidden="true"></i></button></div>'+
    '<ul class="atu">'+(w.w24?'<li><span><span class="ok">Wysyłka 24h</span> - zamów do 13:00, a paczka wyjdzie dziś</span></li>':'<li><span><b>Dostępny</b> - wysyłka po potwierdzeniu dostępności</span></li>')+'<li><span><b>Darmowa dostawa od 100 zł</b>, poniżej: InPost lub GLS 15 zł, pobranie 19 zł</span></li><li><span>BLIK, szybki przelew, PayU „Płacę później” albo za pobraniem</span></li><li><span>Pytania o produkt: <a href="tel:+48880781801"><b>880 781 801</b></a></span></li></ul>'+
    (kr.length?'<ul class="kr2">'+kr.map(function(l){return '<li>'+esc(l)+'</li>'}).join('')+'</ul>':'')+
-   '<div class="zak">'+(opis?'<details'+(innerWidth>=1000?' open':'')+'><summary>Opis produktu</summary><div class="tx">'+opis+'</div></details>':'')+(par?'<details'+(opis&&innerWidth>=1000?'':' open')+'><summary>Parametry</summary><div class="tx">'+par+'</div></details>':'')+'<details><summary>Dostawa i zwroty</summary><div class="tx"><p>Zamówienia złożone do 13:00 z oznaczeniem „wysyłka 24h” wysyłamy tego samego dnia. Paczkomaty InPost i kurier GLS 15 zł, za pobraniem 19 zł, od 100 zł dostawa gratis.</p><p>Towar kupiony przez internet możesz zwrócić w ciągu 14 dni od odbioru - zasady opisuje regulamin sklepu.</p></div></details></div>'+
    '</div></div></div>'+
+   '<section class="opw" aria-label="Opis i parametry"><div class="w">'+
+   '<div class="zak">'+(opis?'<details open><summary>Opis produktu</summary><div class="tx">'+opis+'</div></details>':'')+(par?'<details open><summary>Parametry</summary><div class="tx">'+par+'</div></details>':'')+'<details><summary>Dostawa i zwroty</summary><div class="tx"><p>Zamówienia złożone do 13:00 z oznaczeniem „wysyłka 24h” wysyłamy tego samego dnia. Paczkomaty InPost i kurier GLS 15 zł, za pobraniem 19 zł, od 100 zł dostawa gratis.</p><p>Towar kupiony przez internet możesz zwrócić w ciągu 14 dni od odbioru - zasady opisuje regulamin sklepu.</p></div></details></div>'+
+   '</div></section>'+
    '<section class="sek g" aria-labelledby="h-pod"><div class="w"><div class="gl"><div><h2 id="h-pod">Zobacz też</h2></div>'+navHtml('t-pod')+'</div>'+torHtml('t-pod',podobne)+'</div></section>';
   // galeria
   var gt=q('#gt');
@@ -340,8 +354,8 @@ function vProdukt(pid,p){
     qa('#gal .st').forEach(function(b){b.addEventListener('click',function(){var i=(akt()+(b.classList.contains('p')?1:-1)+gal.length)%gal.length;gt.scrollTo({left:i*gt.clientWidth,behavior:'smooth'})})});
     qa('button',gt).forEach(function(b){b.addEventListener('click',function(){lbOtworz(gal,+b.dataset.i,tytul)})});
   }
-  qa('.opc [data-pid]').forEach(function(b){b.addEventListener('click',function(){if(b.dataset.pid===w.pid)return;var y=scrollY;var nr=PID[b.dataset.pid].w.combos&&c!=null?'?r='+c:'';history.replaceState(null,'','#/p/'+b.dataset.pid+nr);trasa(true);window.scrollTo(0,y);var nb=q('.opc [data-pid="'+b.dataset.pid+'"]');if(nb)nb.focus({preventScroll:true})})});
-  qa('.opc [data-r]').forEach(function(b){b.addEventListener('click',function(){var y=scrollY;history.replaceState(null,'','#/p/'+w.pid+'?r='+b.dataset.r);trasa(true);window.scrollTo(0,y);var nb=q('.opc [data-r="'+b.dataset.r+'"]');if(nb)nb.focus({preventScroll:true})})});
+  qa('.opc [data-pid]').forEach(function(b){b.addEventListener('click',function(){if(b.dataset.pid===w.pid)return;var y=scrollY;history.pushState(null,'',purl(b.dataset.pid,PID[b.dataset.pid].w.combos&&c!=null?c:null));trasa(true);window.scrollTo(0,y);var nb=q('.opc [data-pid="'+b.dataset.pid+'"]');if(nb)nb.focus({preventScroll:true})})});
+  qa('.opc [data-r]').forEach(function(b){b.addEventListener('click',function(){var y=scrollY;history.pushState(null,'',purl(w.pid,+b.dataset.r));trasa(true);window.scrollTo(0,y);var nb=q('.opc [data-r="'+b.dataset.r+'"]');if(nb)nb.focus({preventScroll:true})})});
   var il=q('#ilosc');
   qa('.kup .il button').forEach(function(b){b.addEventListener('click',function(){il.value=Math.max(1,Math.min(99,(+il.value||1)+(+b.dataset.m)))})});
   il.addEventListener('change',function(){il.value=Math.max(1,Math.min(99,Math.round(+il.value)||1))});
@@ -416,12 +430,13 @@ function vDostawa(){document.title='Dostawa i płatność | CENTRUMHANDLOWE.NET 
 function vInfo(){vTekst('Regulamin i informacje','<p>Regulamin sklepu, politykę prywatności, zasady reklamacji i zwrotów przeniesiemy do nowego sklepu z obecnego centrumhandlowe.net (osobno dla F.H.U. DANPOL i Hurtowni ADAMAR) i podepniemy w stopce oraz przy zamówieniu.</p>')}
 function vBrak(){vTekst('Nie znaleziono strony','<p>Tej strony nie ma w demo. <a href="#/">Wróć na stronę główną</a>.</p>')}
 
+function canon(u,t){var l=q('link[rel=canonical]');if(!l){l=document.createElement('link');l.rel='canonical';document.head.appendChild(l)}l.href=u;var m=q('meta[name=description]');if(m)m.content=t+' - cena, rozmiary, dostawa 24h. Sklep CENTRUMHANDLOWE.NET (demo).'}
 /* ---------- router ---------- */
 function trasa(zachowaj){
   var h=location.hash.replace(/^#/,'')||'/';var i=h.indexOf('?');var sciezka=i>-1?h.slice(0,i):h;var p=new URLSearchParams(i>-1?h.slice(i+1):'');
   var cz=sciezka.split('/').filter(Boolean);
   mkUkryj();lbZamknij();menuZamknij();
-  qa('#menu a').forEach(function(a){var on=cz[0]==='k'&&a.dataset.kat===cz[1]||cz[0]==='p'&&PID[cz[1]]&&a.dataset.kat===PID[cz[1]].f.kat;a.classList.toggle('on',!!on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  qa('#menu a').forEach(function(a){var on=cz[0]==='k'&&a.dataset.kat===cz[1]||cz[0]==='p'&&PID[parseInt(cz[1])]&&a.dataset.kat===PID[parseInt(cz[1])].f.kat;a.classList.toggle('on',!!on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(!cz.length)vStart();
   else if(cz[0]==='k')vKategoria(cz[1],p);
   else if(cz[0]==='p')vProdukt(cz[1],p);
@@ -436,6 +451,7 @@ function trasa(zachowaj){
   if(!zachowaj){window.scrollTo(0,0);if(document.activeElement&&document.activeElement!==document.body&&!document.activeElement.closest('.top'))V.focus({preventScroll:true})}
 }
 window.addEventListener('hashchange',function(){trasa(false)});
+window.addEventListener('popstate',function(){var y=scrollY;trasa(true);window.scrollTo(0,y)});
 window.addEventListener('storage',function(e){if(e.key===KEY){kosz=(lsGet(KEY)||[]).filter(function(l){return PID[l.pid]});kOdswiez()}});
 kOdswiez();trasa(true);
 var r=q('#rok');if(r)r.textContent=new Date().getFullYear();
